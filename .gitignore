@@ -5,7 +5,8 @@ build/
 dist/
 wheels/
 *.egg-info
+.env
+roadmap.txt
 
 # Virtual environments
 .venv
-.env

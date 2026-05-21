@@ -6,65 +6,53 @@ Plataforma de dados e machine learning para a **Fórmula 1**, construída sobre 
 
 ## 📐 Arquitetura
 
-```
-┌─────────────────┐     ┌──────────────────────────────────────────┐     ┌──────────────┐
-│                 │     │                  AWS S3                   │     │              │
-│   OpenF1 API    │────▶│  ┌──────────┐  ┌──────────┐  ┌────────┐ │────▶│  ML Model    │
-│  (Fonte de      │     │  │  Bronze  │─▶│  Silver  │─▶│  Gold  │ │     │  (TBD)       │
-│   Dados)        │     │  │ Raw Data │  │ Cleaned  │  │Curated │ │     │              │
-└─────────────────┘     │  └──────────┘  └──────────┘  └────────┘ │     └──────┬───────┘
-                        └──────────────────────────────────────────┘            │
-                                                                                ▼
-                                                                        ┌──────────────┐
-                                                                        │  Streamlit   │
-                                                                        │  Data App    │
-                                                                        └──────────────┘
-```
+<img width="831" height="391" alt="Image" src="https://github.com/user-attachments/assets/ccc455be-4ffe-4cf8-9293-9e4535983116"/>
+
+---
 
 ## 🔄 Pipeline de Dados
 
-O projeto segue a **Arquitetura Medalhão** com três camadas de dados no Amazon S3:
+O projeto segue a **Arquitetura Medalhão** estruturada em um bucket S3 compatível (**Supabase Storage**):
 
-| Camada | Descrição |
-|---|---|
-| 🥉 **Bronze** | Dados brutos ingeridos diretamente da API, sem transformações |
-| 🥈 **Silver** | Dados limpos, tipados e padronizados |
-| 🥇 **Gold** | Dados agregados e modelados para consumo analítico e pelo modelo de ML |
+| Camada | Formato | Descrição |
+| :--- | :---: | :--- |
+| 🥉 **Bronze** | `Parquet` | Dados brutos ingeridos diretamente da API, sem transformações |
+| 🥈 **Silver** | `Parquet` | Dados limpos, tipados e padronizados |
+| 🥇 **Gold** | `Parquet` | Dados agregados e modelados para consumo analítico e pelo modelo de ML |
 
 ### Etapas do Pipeline
 
-1. **Coleta** — Requisições à [OpenF1 API](https://openf1.org/) para obter dados de pilotos, corridas, voltas, pit stops e telemetria
-2. **Armazenamento** — Dados persistidos em formato Parquet no bucket S3 `data-lake-f1`
-3. **Transformação** — Processamento e modelagem das camadas via **dbt**
-4. **ML** — Treinamento e inferência de modelo de machine learning *(em definição)*
-5. **Visualização** — Consumo dos dados através de um **Data App no Streamlit**
+1. **Coleta** — Requisições à [OpenF1 API](https://openf1.org/) para obter dados de pilotos, corridas, voltas, pit stops e telemetria.
+2. **Armazenamento** — Dados salvos no formato Parquet no bucket Supabase Storage (via S3 client).
+3. **Transformação** — Processamento e modelagem das camadas via **dbt**.
+4. **ML** — Treinamento e inferência de modelo de machine learning *(em definição)*.
+5. **Visualização** — Consumo dos dados através de um **Data App no Streamlit**.
 
 ---
 
 ## 🛠️ Tecnologias
 
 | Categoria | Tecnologia |
-|---|---|
-| Linguagem | Python 3.11+ |
-| Fonte de Dados | [OpenF1 API](https://openf1.org/) |
-| Armazenamento | Amazon S3 (AWS) |
-| Formato de Arquivo | Parquet |
-| Transformação | dbt |
-| Machine Learning | A definir |
-| Data App | Streamlit |
-| Gerenciador de Pacotes | [uv](https://github.com/astral-sh/uv) |
+| :--- | :--- |
+| **Linguagem** | Python 3.11+ |
+| **Fonte de Dados** | [OpenF1 API](https://openf1.org/) |
+| **Armazenamento** | Supabase Storage (S3-Compatible API) |
+| **Formato de Arquivo**| Parquet |
+| **Transformação** | dbt |
+| **Machine Learning** | A definir |
+| **Data App** | Streamlit |
+| **Gerenciamento** | [uv](https://github.com/astral-sh/uv) |
 
 ---
 
 ## 📦 Dependências
 
-```toml
-boto3           # SDK AWS para interação com o S3
-fastparquet     # Leitura e escrita de arquivos Parquet
-pandas          # Manipulação e análise de dados
-python-dotenv   # Gerenciamento de variáveis de ambiente
-requests        # Requisições HTTP para a API
-```
+O projeto utiliza as seguintes dependências principais (gerenciadas via `uv`):
+
+* **`boto3`** — SDK da AWS para interação com o bucket S3 (compatível com Supabase).
+* **`pandas`** e **`fastparquet`** — Manipulação rápida de dados e salvamento no formato Parquet.
+* **`requests`** — Consumo de dados via requisições HTTP na API do OpenF1.
+* **`python-dotenv`** — Carregamento automático de variáveis de ambiente do arquivo `.env`.
 
 ---
 
@@ -72,34 +60,37 @@ requests        # Requisições HTTP para a API
 
 ### Pré-requisitos
 
-- Python 3.11+
-- [uv](https://github.com/astral-sh/uv) instalado
-- Credenciais AWS configuradas no arquivo `.env`
+* **Python 3.11+**
+* [**uv**](https://github.com/astral-sh/uv) instalado localmente
+* Credenciais do Supabase Storage (S3-compatible)
 
 ### Configuração do Ambiente
 
-1. Clone o repositório:
+1. **Clone o repositório:**
    ```bash
    git clone https://github.com/diegosangui/f1-ml-platform.git
    cd f1-ml-platform
    ```
 
-2. Instale as dependências com `uv`:
+2. **Instale as dependências com `uv`:**
    ```bash
    uv sync
    ```
 
-3. Configure as variáveis de ambiente criando um arquivo `.env` na raiz do projeto:
+3. **Configure as variáveis de ambiente:**
+   Crie um arquivo `.env` na raiz do projeto contendo as seguintes credenciais:
    ```env
-   AWS_ACCESS_KEY_ID=sua_access_key
-   AWS_SECRET_ACCESS_KEY=sua_secret_key
-   AWS_DEFAULT_REGION=us-east-1
+   ENDPOINT_BUCKET=https://seu-projeto-supabase.supabase.co/storage/v1/s3
+   BUCKET_NAME=data-lake-f1
+   REGION=us-east-1
+   AWS_ACCESS_KEY_ID=sua_s3_access_key
+   AWS_SECRET_ACCESS_KEY=sua_s3_secret_key
    ```
 
-### Execução
+### Execução da Coleta
 
+Execute o script principal para obter os dados mais recentes da API e salvá-los diretamente no bucket:
 ```bash
-# Coleta de dados da API e armazenamento em S3
 uv run src/coleta_dados.py
 ```
 
@@ -107,15 +98,17 @@ uv run src/coleta_dados.py
 
 ## 📁 Estrutura do Projeto
 
-```
+```text
 f1-ml-platform/
+├── .vscode/
+│   └── settings.json       # Configurações do VS Code (injeção automática do .env)
 ├── src/
-│   └── coleta_dados.py     # Script de coleta de dados da OpenF1 API
+│   └── coleta_dados.py     # Script de coleta de dados da OpenF1 API e upload para o S3
 ├── dbt/                    # Modelos de transformação (Bronze → Silver → Gold)
 ├── data/                   # Arquivos locais temporários (não versionados)
 ├── .env                    # Variáveis de ambiente (não versionado)
-├── pyproject.toml          # Configuração do projeto e dependências
-└── README.md
+├── pyproject.toml          # Configuração do projeto e dependências gerenciadas pelo uv
+└── README.md               # Documentação do projeto
 ```
 
 ---
@@ -124,25 +117,28 @@ f1-ml-platform/
 
 Este projeto utiliza a **[OpenF1 API](https://openf1.org/)**, uma API pública e gratuita que fornece dados em tempo real e históricos da Fórmula 1, incluindo:
 
-- 🏎️ Dados de pilotos e equipes
-- 🏁 Sessões e resultados de corridas
-- ⏱️ Tempos de volta e setores
-- 🔧 Pit stops
-- 📡 Telemetria do carro (velocidade, RPM, marcha, etc.)
+* 🏎️ Dados de pilotos e equipes
+* 🏁 Sessões e resultados de corridas
+* ⏱️ Tempos de volta e setores
+* 🔧 Pit stops
+* 📡 Telemetria do carro (velocidade, RPM, marcha, etc.)
 
 ---
 
 ## 🗺️ Roadmap
 
-- [x] Coleta de dados da OpenF1 API
-- [x] Armazenamento em S3 (formato Parquet)
-- [ ] Transformações dbt (camadas Bronze → Silver → Gold)
-- [ ] Definição e treinamento do modelo de ML
-- [ ] Data App no Streamlit
-- [ ] Agendamento do pipeline (Airflow / EventBridge)
+- [x] Conectar na API da OpenF1 (https://openf1.org/docs/#api-endpoints)
+- [x] Salvar os dados em um bucket S3 (Supabase) - raw
+- [ ] Carregar os dados para camada bronze
+- [ ] Tratar os dados da camada bronze e carregar para camada silver
+- [ ] Criar camada(s) gold com os dados agregados 
+- [ ] Criar modelo(s) de ML para os dados disponibilizados
+- [ ] Disponibilizar os modelos de ML em ambiente cloud
+- [ ] Criar app/dash para consumo e utilização dos dados (Streamlit)
 
 ---
 
 ## 📄 Licença
 
 Este projeto está sob a licença MIT.
+
