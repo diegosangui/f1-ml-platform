@@ -1,39 +1,18 @@
 import requests as req
 import pandas as pd
 from dotenv import load_dotenv
-import io
 import os
 import boto3
 from botocore.config import Config
-#import pyarrow as pa
-#import pyarrow.parquet as pq
 
 load_dotenv()
 
+#variaveis de conexao no supabase S3
 bucket_name = os.getenv('BUCKET_NAME')
 aws_access_key_id = os.getenv('AWS_ACCESS_KEY_ID')
 aws_secret_access_key = os.getenv('AWS_SECRET_ACCESS_KEY')
 
-url = 'https://api.openf1.org/v1/drivers?session_key=latest'
-
-response = req.get(url)
-data = response.json()
-
-df = pd.DataFrame(data)
-
-df.to_parquet('data/pilotos_2026.parquet', index=False)
-
-# #jogar para o bucket s3 - data-lake-f1
-
-
-# #função jogar dados para o bucket s3
-# def jogar_dados_s3(df, bucket_name, key):
-#     s3 = boto3.client('s3', 
-#                       aws_access_key_id=os.getenv('AWS_ACCESS_KEY_ID'),
-#                       aws_secret_access_key=os.getenv('AWS_SECRET_ACCESS_KEY'))
-#     s3.put_object(Bucket=bucket_name, Key=key, Body=df.to_parquet(index=False))
-
-
+#conexao com o supabase S3
 s3_client = boto3.client(
     's3',
     endpoint_url=os.getenv('ENDPOINT_BUCKET'),
@@ -42,4 +21,11 @@ s3_client = boto3.client(
     region_name=os.getenv('REGION')
 )
 
+#url de api para coleta de dados
+url = 'https://api.openf1.org/v1/drivers?session_key=latest'
+
+data = req.get(url).json()
+df = pd.DataFrame(data)
+
+#envio de arquivo parquet para supabase s3
 s3_client.put_object(Bucket=os.getenv('BUCKET_NAME'), Key='pilotos_2026.parquet', Body=df.to_parquet(index=False))
