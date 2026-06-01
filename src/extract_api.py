@@ -4,6 +4,8 @@ from dotenv import load_dotenv
 import os
 import boto3
 from botocore.config import Config
+import logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s: %(message)s')
 
 load_dotenv()
 
@@ -32,8 +34,11 @@ urls = {
 #funcao para coletar dados
 def coletar_dados():
     for tabela, url in urls.items():
-        data = req.get(url).json()
-        df = pd.DataFrame(data)
-        s3_client.put_object(Bucket=bucket_name, Key=f'{tabela}_2026.parquet', Body=df.to_parquet(index=False))
-
-coletar_dados()
+        if req.get(url).status_code == 200:
+            logging.info(f'Coletando dados da tabela {tabela} na API da OpenF1')
+            data = req.get(url).json()
+            df = pd.DataFrame(data)
+            s3_client.put_object(Bucket=bucket_name, Key=f'{tabela}_2026.parquet', Body=df.to_parquet(index=False))
+            logging.info(f'Dados da tabela {tabela} armazenados no bucket {bucket_name}')
+        else:
+            logging.warning(f'Erro ao coletar dados da tabela {tabela}. Status code {req.get(url).status_code}')

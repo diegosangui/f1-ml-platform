@@ -8,6 +8,7 @@ wheels/
 .env
 roadmap.txt
 testes.py
+Pasta1.xlsx
 
 # Virtual environments
 .venv
