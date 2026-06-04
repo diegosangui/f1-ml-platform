@@ -11,7 +11,8 @@ env_s3 = {
     'aws_access_key_id': os.getenv('AWS_ACCESS_KEY_ID'),
     'aws_secret_access_key': os.getenv('AWS_SECRET_ACCESS_KEY'),
     'endpoint_url': os.getenv('ENDPOINT_BUCKET'),
-    'region_name': os.getenv('REGION')
+    'region_name': os.getenv('REGION'),
+    'database_url': os.getenv('DATABASE_URL'),
 }
 #conexao com o supabase S3
 def conn_s3():
