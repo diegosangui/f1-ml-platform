@@ -1,4 +1,4 @@
-from module.connection_aws import env_s3, conn_s3
+from connection_aws import env_s3, conn_s3
 import pandas as pd
 from sqlalchemy import create_engine
 from io import BytesIO
