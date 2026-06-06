@@ -1,6 +1,6 @@
 import requests as req
 import pandas as pd
-from connection_aws import env_s3, conn_s3
+from module.connection_aws import env_s3, conn_s3
 import logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s: %(message)s')
 
