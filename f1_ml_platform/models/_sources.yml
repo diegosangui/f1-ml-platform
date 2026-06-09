@@ -1,0 +1,92 @@
+version: 2
+
+sources:
+  - name: raw
+    description: "Dados brutos como vieram do bucket S3"
+    schema: public
+    tables:
+      - name: sessoes
+        description: "Calendario de corridas"  
+        columns:
+          - name: session_key
+            description: "ID único da sessão"
+          - name: session_type
+            description: "Tipo de sessão"
+          - name: session_name
+            description: "Nome da sessão"
+          - name: date_start
+            description: "Data de início da sessão"
+          - name: date_end
+            description: "Data de término da sessão"
+          - name: meeting_key
+            description: "ID único do encontro"
+          - name: circuit_key
+            description: "ID único do circuito"
+          - name: circuit_short_name
+            description: "Nome curto do circuito"
+          - name: country_key
+            description: "ID único do país"
+          - name: country_code
+            description: "Código do país"
+          - name: country_name
+            description: "Nome do país"
+          - name: location
+            description: "Localização"
+          - name: gmt_offset
+            description: "Offset GMT"
+          - name: year
+            description: "Ano"
+          - name: is_cancelled
+            description: "Se a sessão foi cancelada"
+      - name: pilotos
+        description: "Dados dos pilotos"
+        columns:
+          - name: meeting_key
+            description: "ID único do encontro"
+          - name: session_key
+            description: "ID único da sessão"
+          - name: driver_number
+            description: "Número do piloto"
+          - name: broadcast_name
+            description: "Nome para transmissão"
+          - name: full_name
+            description: "Nome completo"
+          - name: name_acronym
+            description: "Acrônimo do nome"
+          - name: team_name
+            description: "Nome da equipe"
+          - name: team_colour
+            description: "Cor da equipe"
+          - name: first_name
+            description: "Nome"
+          - name: last_name
+            description: "Sobrenome"
+          - name: headshot_url
+            description: "URL da foto"
+          - name: country_code
+            description: "Código do país"
+      - name: resultados_sessoes
+        description: "Resultados das sessoes"
+        columns:
+          - name: position
+            description: "Posição"
+          - name: driver_number
+            description: "Número do piloto"
+          - name: number_of_laps
+            description: "Número de voltas"
+          - name: dnf
+            description: "Se o piloto abandonou"
+          - name: dns
+            description: "Se o piloto não largou"
+          - name: dsq
+            description: "Se o piloto foi desclassificado"
+          - name: duration
+            description: "Duração"
+          - name: gap_to_leader
+            description: "Gap para o líder"
+          - name: meeting_key
+            description: "ID único do encontro"
+          - name: session_key
+            description: "ID único da sessão"
+          - name: points
+            description: "Pontos" 
