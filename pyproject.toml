@@ -11,6 +11,7 @@ dependencies = [
     "logging>=0.4.9.6",
     "pandas>=3.0.3",
     "psycopg2>=2.9.12",
+    "pyarrow>=24.0.0",
     "python-dotenv>=1.2.2",
     "requests>=2.34.2",
     "sqlalchemy>=2.0.50",
