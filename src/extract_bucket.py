@@ -23,5 +23,3 @@ def ler_dados_bucket():
             index=False
             )
         logging.info(f"Dados da tabela {arquivo.split('.')[0]} armazenados no banco de dados")
-
-ler_dados_bucket()
