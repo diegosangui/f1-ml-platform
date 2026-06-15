@@ -1,4 +1,5 @@
 import requests as req
+from datetime import datetime as dt
 import pandas as pd
 import json
 from module.connection_aws import env_s3, conn_s3
@@ -11,6 +12,8 @@ urls = {
     'sessoes': 'https://api.openf1.org/v1/sessions',
     'resultados_sessoes': 'https://api.openf1.org/v1/session_result',
 }
+
+data_atual = dt.now().strftime('%Y%m%d%H%M%S')
 
 #funcao para coletar dados
 def coletar_dados():
@@ -26,15 +29,23 @@ def coletar_dados():
                     df[col] = df[col].apply(
                         lambda x: json.dumps(x) if isinstance(x, list) else None if pd.isna(x) else str(x)
                     )
-            conn_s3().put_object(
-                Bucket=env_s3['bucket_name'],
-                Key=f'{tabela}.parquet',
-                Body=df.to_parquet(engine="pyarrow", index=False),
-            )
+            if tabela == 'resultados_sessoes':
+                 conn_s3().put_object(
+                    Bucket=env_s3['bucket_name'],
+                    Key=f'results/{tabela}{data_atual}.parquet',
+                    Body=df.to_parquet(engine="pyarrow", index=False),
+                )             
+            else:  
+                conn_s3().put_object(
+                    Bucket=env_s3['bucket_name'],
+                    Key=f'{tabela}.parquet',
+                    Body=df.to_parquet(engine="pyarrow", index=False),
+                )
             logging.info(
                 f"Dados da tabela {tabela} armazenados no bucket {env_s3['bucket_name']}"
             )
         else:
             logging.warning(
-                f"Erro ao coletar dados de {tabela}. Status code {response.status_code}"
+                f"Erro ao coletar dados de {tabela}. Status code {response.status_code}: {response.text}"
             )
+coletar_dados()
