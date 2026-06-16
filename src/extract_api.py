@@ -10,7 +10,7 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s: %(mes
 urls = {
     'pilotos': 'https://api.openf1.org/v1/drivers',
     'sessoes': 'https://api.openf1.org/v1/sessions',
-    'resultados_sessoes': 'https://api.openf1.org/v1/session_result',
+    'resultadosessoes': 'https://api.openf1.org/v1/session_result',
 }
 
 data_atual = dt.now().strftime('%Y%m%d%H%M%S')
@@ -29,18 +29,16 @@ def coletar_dados():
                     df[col] = df[col].apply(
                         lambda x: json.dumps(x) if isinstance(x, list) else None if pd.isna(x) else str(x)
                     )
-            if tabela == 'resultados_sessoes':
-                 conn_s3().put_object(
-                    Bucket=env_s3['bucket_name'],
-                    Key=f'results/{tabela}{data_atual}.parquet',
-                    Body=df.to_parquet(engine="pyarrow", index=False),
-                )             
-            else:  
-                conn_s3().put_object(
-                    Bucket=env_s3['bucket_name'],
-                    Key=f'{tabela}.parquet',
-                    Body=df.to_parquet(engine="pyarrow", index=False),
-                )
+            if tabela == 'resultadosessoes':
+                path = f'results/{tabela}_{data_atual}.parquet'
+            else:
+                path = f'{tabela}.parquet'
+
+            conn_s3().put_object(
+                Bucket=env_s3['bucket_name'],
+                Key=path,
+                Body=df.to_parquet(engine="pyarrow", index=False),
+            )
             logging.info(
                 f"Dados da tabela {tabela} armazenados no bucket {env_s3['bucket_name']}"
             )
@@ -48,4 +46,3 @@ def coletar_dados():
             logging.warning(
                 f"Erro ao coletar dados de {tabela}. Status code {response.status_code}: {response.text}"
             )
-coletar_dados()

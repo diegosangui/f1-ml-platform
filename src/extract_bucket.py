@@ -8,7 +8,7 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s: %(mes
 logging.info(f"Conectando no bucket {env_s3.get('bucket_name')}...")
 response = conn_s3().list_objects(Bucket=env_s3.get('bucket_name'))
 
-arquivos = [objeto['Key'] for objeto in response['Contents'] if objeto['Key'] != '.emptyFolderPlaceholder']
+arquivos = [objeto['Key'] for objeto in response['Contents'] if objeto['Key'].endswith('.parquet')]
 
 logging.info("Conectando no banco de dados...")
 engine = create_engine(env_s3.get('database_url'))
@@ -23,3 +23,4 @@ def ler_dados_bucket():
             index=False
             )
         logging.info(f"Dados da tabela {arquivo.split('.')[0]} armazenados no banco de dados")
+
