@@ -17,18 +17,46 @@ O projeto segue a **Arquitetura Medalhão** estruturada em um bucket S3 compatí
 | Camada | Armazenamento | Formato | Descrição |
 | :--- | :---: | :---: | :--- |
 | 🛬 **Landing Zone** | Supabase Storage (S3) | `Parquet` | Dados brutos ingeridos diretamente da API, sem transformações |
-| 🥉 **Bronze** | PostgreSQL (Supabase) | `Tabela SQL` | Dados brutos carregados do S3 para o banco de dados |
+| 🥉 **Bronze** | PostgreSQL (Supabase) | `Tabela SQL` | Dados brutos carregados do S3 para o banco de dados (via dbt) |
 | 🥈 **Silver** | PostgreSQL (Supabase) | `Tabela SQL` | Dados limpos, tipados e padronizados (via dbt) |
-| 🥇 **Gold** | PostgreSQL (Supabase) | `Tabela SQL` | Dados agregados e modelados para consumo analítico e pelo modelo de ML (via dbt) |
+| 🥇 **Gold** | PostgreSQL (Supabase) | `Tabela SQL` | Dados agregados e modelados para consumo analítico (via dbt) |
 
 ### Etapas do Pipeline
 
-1. **Coleta** — Requisições à [OpenF1 API](https://openf1.org/) para obter dados de pilotos, corridas, voltas, pit stops e telemetria.
-2. **Landing Zone** — Dados salvos no formato Parquet no bucket Supabase Storage (via S3 client).
+1. **Coleta** — Requisições à [OpenF1 API](https://openf1.org/) para obter dados de pilotos, sessões e resultados de corridas.
+2. **Landing Zone** — Dados salvos no formato Parquet no bucket Supabase Storage (via S3 client com `boto3`).
 3. **Bronze (Carga)** — Leitura dos arquivos Parquet diretamente do bucket S3 e inserção no banco de dados via SQLAlchemy/Pandas.
-4. **Transformação (Silver/Gold)** — Processamento, modelagem e limpeza das camadas via **dbt**.
-5. **ML** — Treinamento e inferência de modelo de machine learning *(em definição)*.
-6. **Visualização** — Consumo dos dados através de um **Data App no Streamlit**.
+4. **Transformação Silver** — Limpeza, tipagem e padronização dos dados via **dbt** (modelos: `silver_pilotos`, `silver_sessoes`, `silver_resultados_sessoes`).
+5. **Camada Gold** — Modelagem analítica com dados agregados via **dbt** (modelos: `pilotos_2026`, `classificacao_2026`, `calendario_2026`).
+6. **ML** — Treinamento e inferência de modelo de machine learning *(em definição)*.
+7. **Visualização** — Consumo dos dados através de um **Data App no Streamlit** *(em definição)*.
+
+---
+
+## 🗂️ Modelos dbt
+
+Os modelos dbt estão organizados nas três camadas da arquitetura Medalhão, dentro do diretório `dbt/models/`:
+
+### 🥉 Bronze
+| Modelo | Descrição |
+| :--- | :--- |
+| `bronze_pilotos` | Dados brutos dos pilotos carregados da fonte raw |
+| `bronze_sessoes` | Dados brutos das sessões/calendário |
+| `bronze_resultados_sessoes` | Dados brutos dos resultados de cada sessão |
+
+### 🥈 Silver
+| Modelo | Descrição |
+| :--- | :--- |
+| `silver_pilotos` | Pilotos com colunas tipadas e renomeadas para português |
+| `silver_sessoes` | Sessões com colunas tipadas, renomeadas e filtradas |
+| `silver_resultados_sessoes` | Resultados de sessões limpos e tipados |
+
+### 🥇 Gold
+| Modelo | Descrição |
+| :--- | :--- |
+| `pilotos_2026` | Pilotos ativos na temporada 2026 (Corridas e Sprints) |
+| `classificacao_2026` | Classificação geral dos pilotos na temporada 2026 |
+| `calendario_2026` | Calendário de provas da temporada 2026 |
 
 ---
 
@@ -40,12 +68,15 @@ O projeto segue a **Arquitetura Medalhão** estruturada em um bucket S3 compatí
 | **Fonte de Dados** | [OpenF1 API](https://openf1.org/) |
 | **Armazenamento (Arquivos)** | Supabase Storage (S3-Compatible API) |
 | **Banco de Dados** | PostgreSQL (Supabase DB) |
-| **Formato de Arquivo**| Parquet |
-| **Mapeamento/Conexão DB**| SQLAlchemy & Psycopg2 |
+| **Formato de Arquivo** | Parquet |
+| **SDK S3** | boto3 |
+| **Mapeamento/Conexão DB** | SQLAlchemy & Psycopg2 |
+| **Serialização Parquet** | PyArrow |
 | **Transformação** | dbt (dbt-core / dbt-postgres) |
+| **Logging** | Python logging (stdlib) |
 | **Machine Learning** | A definir |
-| **Data App** | Streamlit |
-| **Gerenciamento** | [uv](https://github.com/astral-sh/uv) |
+| **Data App** | Streamlit *(em definição)* |
+| **Gerenciamento de Pacotes** | [uv](https://github.com/astral-sh/uv) |
 
 ---
 
@@ -55,10 +86,12 @@ O projeto utiliza as seguintes dependências principais (gerenciadas via `uv`):
 
 * **`boto3`** — SDK da AWS para interação com o bucket S3 (compatível com Supabase).
 * **`pandas`** — Manipulação e estruturação de dados em DataFrames.
+* **`pyarrow`** — Engine de serialização/desserialização de arquivos Parquet.
 * **`requests`** — Consumo de dados via requisições HTTP na API do OpenF1.
 * **`python-dotenv`** — Carregamento automático de variáveis de ambiente do arquivo `.env`.
-* **`sqlalchemy`** e **`psycopg2`** / **`psycopg2-binary`** — Criação do engine de conexão com o banco de dados e inserção dos dados na camada Bronze.
-* **`dbt-core`** e **`dbt-postgres`** — Ferramentas de transformação de dados e modelagem das camadas Silver e Gold no PostgreSQL.
+* **`sqlalchemy`** e **`psycopg2`** — Criação do engine de conexão com o banco de dados e inserção dos dados na camada Bronze.
+* **`dbt-core`** e **`dbt-postgres`** — Ferramentas de transformação de dados e modelagem das camadas Bronze, Silver e Gold no PostgreSQL.
+* **`logging`** — Rastreamento e monitoramento das execuções dos pipelines.
 
 ---
 
@@ -100,10 +133,26 @@ O projeto utiliza as seguintes dependências principais (gerenciadas via `uv`):
    ```bash
    uv run src/extract_api.py
    ```
+   > Coleta dados de pilotos, sessões e resultados da [OpenF1 API](https://openf1.org/) e os salva no formato Parquet no bucket S3 do Supabase.
 
 2. **Carga dos dados do S3 para o Banco de Dados (Camada Bronze):**
    ```bash
    uv run src/extract_bucket.py
+   ```
+   > Lê todos os arquivos `.parquet` do bucket e os carrega nas tabelas brutas do PostgreSQL.
+
+3. **Transformação com dbt (Camadas Bronze → Silver → Gold):**
+   ```bash
+   cd dbt
+   dbt run
+   ```
+   > Executa todos os modelos dbt, populando as camadas Bronze, Silver e Gold no banco de dados.
+
+   Para executar uma camada específica:
+   ```bash
+   dbt run --select bronze   # Apenas camada Bronze
+   dbt run --select silver   # Apenas camada Silver
+   dbt run --select gold     # Apenas camada Gold
    ```
 
 ---
@@ -113,16 +162,33 @@ O projeto utiliza as seguintes dependências principais (gerenciadas via `uv`):
 ```text
 f1-ml-platform/
 ├── .vscode/
-│   └── settings.json       # Configurações do VS Code (injeção automática do .env)
+│   └── settings.json           # Configurações do VS Code (injeção automática do .env)
+├── dbt/
+│   ├── models/
+│   │   ├── _sources.yml        # Definição das fontes de dados (tabelas raw no PostgreSQL)
+│   │   ├── bronze/
+│   │   │   ├── bronze_pilotos.sql
+│   │   │   ├── bronze_sessoes.sql
+│   │   │   └── bronze_resultados_sessoes.sql
+│   │   ├── silver/
+│   │   │   ├── silver_pilotos.sql
+│   │   │   ├── silver_sessoes.sql
+│   │   │   └── silver_resultados_sessoes.sql
+│   │   └── gold/
+│   │       ├── pilotos_2026.sql
+│   │       ├── classificacao_2026.sql
+│   │       └── calendario_2026.sql
+│   └── dbt_project.yml         # Configuração do projeto dbt (perfil, schemas, tags)
 ├── src/
 │   ├── module/
-│   │   └── connection_aws.py  # Módulo de conexões (S3 e PostgreSQL Engine)
-│   ├── extract_api.py      # Extração de dados da OpenF1 API para a Landing Zone (S3)
-│   └── extract_bucket.py   # Carga dos dados do S3 (Landing Zone) para o PostgreSQL (Bronze)
-├── data/                   # Arquivos locais temporários (não versionados)
-├── .env                    # Variáveis de ambiente (não versionado)
-├── pyproject.toml          # Configuração do projeto e dependências gerenciadas pelo uv
-└── README.md               # Documentação do projeto
+│   │   └── connection_aws.py   # Módulo de conexões (S3 client e PostgreSQL engine)
+│   ├── extract_api.py          # Extração de dados da OpenF1 API → Landing Zone (S3)
+│   └── extract_bucket.py       # Carga dos dados S3 (Landing Zone) → PostgreSQL (Bronze raw)
+├── data/                       # Arquivos locais temporários (não versionados)
+├── logs/                       # Logs de execução (não versionados)
+├── .env                        # Variáveis de ambiente (não versionado)
+├── pyproject.toml              # Configuração do projeto e dependências (uv)
+└── README.md                   # Documentação do projeto
 ```
 
 ---
@@ -137,15 +203,24 @@ Este projeto utiliza a **[OpenF1 API](https://openf1.org/)**, uma API pública e
 * 🔧 Pit stops
 * 📡 Telemetria do carro (velocidade, RPM, marcha, etc.)
 
+### Endpoints Utilizados
+
+| Endpoint | Descrição |
+| :--- | :--- |
+| `/v1/drivers` | Dados e informações dos pilotos |
+| `/v1/sessions` | Sessões (treinos, classificação, corridas) |
+| `/v1/session_result` | Resultados de cada sessão |
+
 ---
 
 ## 🗺️ Roadmap
 
 - [x] Conectar na API da OpenF1 (https://openf1.org/docs/#api-endpoints)
-- [x] Salvar os dados em um bucket S3 (Supabase) - raw
+- [x] Salvar os dados em um bucket S3 (Supabase) - Landing Zone (Parquet)
 - [x] Carregar os dados para camada bronze (PostgreSQL)
-- [ ] Tratar os dados da camada bronze e carregar para camada silver (via dbt)
-- [ ] Criar camada(s) gold com os dados agregados (via dbt)
+- [x] Tratar os dados da camada bronze e carregar para camada silver (via dbt)
+- [x] Criar camada(s) gold com os dados agregados (via dbt)
+- [ ] Criar validação de erros e qualidade de dados
 - [ ] Criar modelo(s) de ML para os dados disponibilizados
 - [ ] Disponibilizar os modelos de ML em ambiente cloud
 - [ ] Criar app/dash para consumo e utilização dos dados (Streamlit)
@@ -155,4 +230,3 @@ Este projeto utiliza a **[OpenF1 API](https://openf1.org/)**, uma API pública e
 ## 📄 Licença
 
 Este projeto está sob a licença MIT.
-
