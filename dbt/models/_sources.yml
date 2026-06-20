@@ -65,7 +65,7 @@ sources:
             description: "URL da foto"
           - name: country_code
             description: "Código do país"
-      - name: resultados_sessoes
+      - name: resultadosessoes
         description: "Resultados das sessoes"
         columns:
           - name: position

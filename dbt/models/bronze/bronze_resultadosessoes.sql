@@ -10,4 +10,4 @@ select
   meeting_key,
   session_key,
   points
-from {{ source('raw', 'resultados_sessoes') }}
+from {{ source('raw', 'resultadosessoes') }}
