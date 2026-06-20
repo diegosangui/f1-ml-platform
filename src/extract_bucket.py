@@ -16,11 +16,19 @@ engine = create_engine(env_s3.get('database_url'))
 def ler_dados_bucket():
     for arquivo in arquivos:
         df = pd.read_parquet(BytesIO(conn_s3().get_object(Bucket=env_s3.get('bucket_name'), Key=arquivo)['Body'].read()))
+        if arquivo.startswith('results'):
+            nome_tabela = 'resultadosessoes'
+            if_exists = 'append'
+        else:
+            nome_tabela = arquivo.split('.')[0]
+            if_exists = 'replace'
+
         df.to_sql(
-            arquivo.split('.')[0],
+            nome_tabela,
             engine,
-            if_exists='replace',
+            if_exists=if_exists,
             index=False
-            )
-        logging.info(f"Dados da tabela {arquivo.split('.')[0]} armazenados no banco de dados")
+        )
+        logging.info(f"Dados do arquivo {arquivo} armazenados no banco de dados na tabela {nome_tabela}.")
+
 
