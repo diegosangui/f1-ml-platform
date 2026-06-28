@@ -25,5 +25,3 @@ where
     from
       corridas_2026
   )
-order by
-  numero_piloto asc
