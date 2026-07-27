@@ -24,39 +24,39 @@ O projeto segue a **Arquitetura Medalhão** estruturada em um bucket S3 compatí
 ### Etapas do Pipeline
 
 1. **Coleta** — Requisições à [OpenF1 API](https://openf1.org/) para obter dados de pilotos, sessões e resultados de corridas.
-2. **Landing Zone** — Dados salvos no formato Parquet no bucket Supabase Storage (via S3 client com `boto3`).
+2. **Landing Zone** — Dados salvos no formato Parquet no bucket Supabase Storage (via S3 client com `boto3`). Pilotos e sessões são salvos como arquivos únicos; resultados de sessão são particionados por timestamp em `results/`.
 3. **Bronze (Carga)** — Leitura dos arquivos Parquet diretamente do bucket S3 e inserção no banco de dados via SQLAlchemy/Pandas.
-4. **Transformação Silver** — Limpeza, tipagem e padronização dos dados via **dbt** (modelos: `silver_pilotos`, `silver_sessoes`, `silver_resultados_sessoes`).
+4. **Transformação Silver** — Limpeza, tipagem e padronização dos dados via **dbt** (modelos: `silver_pilotos`, `silver_sessoes`, `silver_resultadosessoes`).
 5. **Camada Gold** — Modelagem analítica com dados agregados via **dbt** (modelos: `pilotos_2026`, `classificacao_2026`, `calendario_2026`).
-6. **ML** — Treinamento e inferência de modelo de machine learning *(em definição)*.
-7. **Visualização** — Consumo dos dados através de um **Data App no Streamlit** *(em definição)*.
+6. **ML** — Treinamento e inferência de modelo de machine learning *(em desenvolvimento)*.
+7. **Visualização** — Consumo dos dados através de um **Data App no Streamlit** *(em desenvolvimento)*.
 
 ---
 
 ## 🗂️ Modelos dbt
 
-Os modelos dbt estão organizados nas três camadas da arquitetura Medalhão, dentro do diretório `dbt/models/`:
+Os modelos dbt estão organizados nas três camadas da arquitetura Medalhão, dentro do diretório `dbt/models/`. Cada camada é materializada como `table` em seu próprio schema no PostgreSQL.
 
 ### 🥉 Bronze
-| Modelo | Descrição |
-| :--- | :--- |
-| `bronze_pilotos` | Dados brutos dos pilotos carregados da fonte raw |
-| `bronze_sessoes` | Dados brutos das sessões/calendário |
-| `bronze_resultados_sessoes` | Dados brutos dos resultados de cada sessão |
+| Modelo | Schema | Descrição |
+| :--- | :---: | :--- |
+| `bronze_pilotos` | `bronze` | Dados brutos dos pilotos carregados da fonte raw |
+| `bronze_sessoes` | `bronze` | Dados brutos das sessões/calendário |
+| `bronze_resultadosessoes` | `bronze` | Dados brutos dos resultados de cada sessão |
 
 ### 🥈 Silver
-| Modelo | Descrição |
-| :--- | :--- |
-| `silver_pilotos` | Pilotos com colunas tipadas e renomeadas para português |
-| `silver_sessoes` | Sessões com colunas tipadas, renomeadas e filtradas |
-| `silver_resultados_sessoes` | Resultados de sessões limpos e tipados |
+| Modelo | Schema | Descrição |
+| :--- | :---: | :--- |
+| `silver_pilotos` | `silver` | Pilotos com colunas tipadas e renomeadas para português |
+| `silver_sessoes` | `silver` | Sessões com colunas tipadas, renomeadas e filtradas |
+| `silver_resultadosessoes` | `silver` | Resultados de sessões limpos e tipados |
 
 ### 🥇 Gold
-| Modelo | Descrição |
-| :--- | :--- |
-| `pilotos_2026` | Pilotos ativos na temporada 2026 (Corridas e Sprints) |
-| `classificacao_2026` | Classificação geral dos pilotos na temporada 2026 |
-| `calendario_2026` | Calendário de provas da temporada 2026 |
+| Modelo | Schema | Descrição |
+| :--- | :---: | :--- |
+| `pilotos_2026` | `gold` | Pilotos ativos na temporada 2026 (Corridas e Sprints) |
+| `classificacao_2026` | `gold` | Classificação geral dos pilotos na temporada 2026 com pontuação e vitórias |
+| `calendario_2026` | `gold` | Calendário de provas da temporada 2026 |
 
 ---
 
@@ -139,7 +139,7 @@ O projeto utiliza as seguintes dependências principais (gerenciadas via `uv`):
    ```bash
    uv run src/extract_bucket.py
    ```
-   > Lê todos os arquivos `.parquet` do bucket e os carrega nas tabelas brutas do PostgreSQL.
+   > Lê todos os arquivos `.parquet` do bucket e os carrega nas tabelas brutas do PostgreSQL. Tabelas de pilotos e sessões são substituídas (`replace`); resultados de sessão são acumulados (`append`).
 
 3. **Transformação com dbt (Camadas Bronze → Silver → Gold):**
    ```bash
@@ -169,11 +169,11 @@ f1-ml-platform/
 │   │   ├── bronze/
 │   │   │   ├── bronze_pilotos.sql
 │   │   │   ├── bronze_sessoes.sql
-│   │   │   └── bronze_resultados_sessoes.sql
+│   │   │   └── bronze_resultadosessoes.sql
 │   │   ├── silver/
 │   │   │   ├── silver_pilotos.sql
 │   │   │   ├── silver_sessoes.sql
-│   │   │   └── silver_resultados_sessoes.sql
+│   │   │   └── silver_resultadosessoes.sql
 │   │   └── gold/
 │   │       ├── pilotos_2026.sql
 │   │       ├── classificacao_2026.sql
@@ -184,7 +184,6 @@ f1-ml-platform/
 │   │   └── connection_aws.py   # Módulo de conexões (S3 client e PostgreSQL engine)
 │   ├── extract_api.py          # Extração de dados da OpenF1 API → Landing Zone (S3)
 │   └── extract_bucket.py       # Carga dos dados S3 (Landing Zone) → PostgreSQL (Bronze raw)
-├── data/                       # Arquivos locais temporários (não versionados)
 ├── logs/                       # Logs de execução (não versionados)
 ├── .env                        # Variáveis de ambiente (não versionado)
 ├── pyproject.toml              # Configuração do projeto e dependências (uv)
@@ -224,6 +223,7 @@ Este projeto utiliza a **[OpenF1 API](https://openf1.org/)**, uma API pública e
 - [ ] Criar modelo(s) de ML para os dados disponibilizados
 - [ ] Disponibilizar os modelos de ML em ambiente cloud
 - [ ] Criar app/dash para consumo e utilização dos dados (Streamlit)
+
 
 ---
 
