@@ -31,4 +31,4 @@ def ler_dados_bucket():
         )
         logging.info(f"Dados do arquivo {arquivo} armazenados no banco de dados na tabela {nome_tabela}.")
 
-
+ler_dados_bucket()

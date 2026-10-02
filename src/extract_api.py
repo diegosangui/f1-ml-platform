@@ -46,3 +46,4 @@ def coletar_dados():
             logging.warning(
                 f"Erro ao coletar dados de {tabela}. Status code {response.status_code}: {response.text}"
             )
+coletar_dados()
