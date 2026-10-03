@@ -74,6 +74,7 @@ Os modelos dbt estão organizados nas três camadas da arquitetura Medalhão, de
 | **Mapeamento/Conexão DB** | SQLAlchemy & Psycopg2 |
 | **Serialização Parquet** | PyArrow |
 | **Transformação** | dbt-core / dbt-postgres |
+| **Automação / CI** | GitHub Actions |
 | **Variáveis de Ambiente** | python-dotenv |
 | **Logging** | Python `logging` (stdlib) |
 | **Machine Learning** | *(a definir)* |
@@ -162,10 +163,58 @@ O projeto utiliza as seguintes dependências principais (gerenciadas via `uv`):
 
 ---
 
+## ⚙️ Automação — GitHub Actions
+
+O pipeline de extração é executado automaticamente toda **segunda-feira às 06:00 UTC** via [GitHub Actions](.github/workflows/extract.yml), sem necessidade de intervenção manual. Também é possível disparar a execução manualmente pela interface do GitHub (`workflow_dispatch`).
+
+### Fluxo de execução
+
+```
+┌────────────────────────────────┐
+│        Trigger (schedule)      │
+│  toda segunda-feira às 06:00 UTC│
+│  + execução manual (dispatch)  │
+└────────────────┬───────────────┘
+                 │
+                 ▼
+    ┌────────────────────────┐
+    │  Job: extract-api      │
+    │  OpenF1 API → S3       │
+    │  (extract_api.py)      │
+    └────────────┬───────────┘
+                 │  needs: extract-api
+                 ▼
+    ┌────────────────────────┐
+    │  Job: extract-bucket   │
+    │  S3 → PostgreSQL       │
+    │  (extract_bucket.py)   │
+    └────────────────────────┘
+```
+
+### Secrets necessários
+
+Configure em **Settings → Secrets and variables → Actions** do repositório:
+
+| Secret | Descrição |
+| :--- | :--- |
+| `BUCKET_NAME` | Nome do bucket no Supabase Storage |
+| `AWS_ACCESS_KEY_ID` | Access key do S3 (Supabase) |
+| `AWS_SECRET_ACCESS_KEY` | Secret key do S3 (Supabase) |
+| `ENDPOINT_BUCKET` | URL do endpoint S3 do Supabase |
+| `REGION` | Região do bucket (ex: `us-east-1`) |
+| `DATABASE_URL` | Connection string do PostgreSQL |
+
+> Os valores desses secrets correspondem às mesmas variáveis do arquivo `.env` local.
+
+---
+
 ## 📁 Estrutura do Projeto
 
 ```text
 f1-ml-platform/
+├── .github/
+│   └── workflows/
+│       └── extract.yml         # Workflow de extração automática semanal (GitHub Actions)
 ├── .vscode/
 │   └── settings.json           # Configurações do VS Code (injeção automática do .env)
 ├── dbt/
@@ -224,6 +273,7 @@ Este projeto utiliza a **[OpenF1 API](https://openf1.org/)**, uma API pública e
 - [x] Carregar os dados para camada bronze (PostgreSQL)
 - [x] Tratar os dados da camada bronze e carregar para camada silver (via dbt)
 - [x] Criar camada(s) gold com os dados agregados (via dbt)
+- [x] Automatizar o pipeline de extração com GitHub Actions (schedule semanal)
 - [ ] Criar validação de erros e qualidade de dados
 - [ ] Criar modelo(s) de ML para os dados disponibilizados
 - [ ] Disponibilizar os modelos de ML em ambiente cloud
