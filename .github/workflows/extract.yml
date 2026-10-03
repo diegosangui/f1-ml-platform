@@ -33,18 +33,12 @@ jobs:
       - name: Instalar dependencias
         run: |
           python -m pip install --upgrade pip
-          pip install \
-            boto3 \
-            pandas \
-            pyarrow \
-            requests \
-            python-dotenv \
-            sqlalchemy \
-            psycopg2-binary
+          pip install uv
+          uv sync
 
       - name: Executar extract_api.py
         working-directory: src
-        run: python extract_api.py
+        run: uv run extract_api.py
 
   extract-bucket:
     name: Extract from S3 -> Database
@@ -72,14 +66,9 @@ jobs:
       - name: Instalar dependencias
         run: |
           python -m pip install --upgrade pip
-          pip install \
-            boto3 \
-            pandas \
-            pyarrow \
-            python-dotenv \
-            sqlalchemy \
-            psycopg2-binary
+          pip install uv
+          uv sync
 
       - name: Executar extract_bucket.py
         working-directory: src
-        run: python extract_bucket.py
+        run: uv run extract_bucket.py
