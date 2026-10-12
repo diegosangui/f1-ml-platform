@@ -33,7 +33,8 @@ def coletar_dados():
                 path = f'results/{tabela}_{data_atual}.parquet'
             else:
                 path = f'{tabela}.parquet'
-
+            if "position" in df.columns:
+                df["position"] = df["position"].astype("string")
             conn_s3().put_object(
                 Bucket=env_s3['bucket_name'],
                 Key=path,
