@@ -9,3 +9,4 @@ select distinct
   session_key::integer as id_sessao,
   points::integer as pontos
 from {{ ref('bronze_resultadosessoes') }}
+where position ~ '^[0-9]+$'
