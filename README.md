@@ -188,12 +188,21 @@ O pipeline de extração é executado automaticamente toda **segunda-feira às 0
     │  Job: extract-bucket   │
     │  S3 → PostgreSQL       │
     │  (extract_bucket.py)   │
+    └────────────┬───────────┘
+                 │  needs: extract-bucket
+                 ▼
+    ┌────────────────────────┐
+    │  Job: dbt-run          │
+    │  Bronze → Silver → Gold│
+    │  (dbt run + dbt test)  │
     └────────────────────────┘
 ```
 
 ### Secrets necessários
 
 Configure em **Settings → Secrets and variables → Actions** do repositório:
+
+#### Jobs `extract-api` e `extract-bucket`
 
 | Secret | Descrição |
 | :--- | :--- |
@@ -203,6 +212,16 @@ Configure em **Settings → Secrets and variables → Actions** do repositório:
 | `ENDPOINT_BUCKET` | URL do endpoint S3 do Supabase |
 | `REGION` | Região do bucket (ex: `us-east-1`) |
 | `DATABASE_URL` | Connection string do PostgreSQL |
+
+#### Job `dbt-run`
+
+| Secret | Descrição |
+| :--- | :--- |
+| `DB_HOST` | Host do banco de dados PostgreSQL |
+| `DB_PORT` | Porta do banco de dados (ex: `5432`) |
+| `DB_USER` | Usuário do banco de dados |
+| `DB_PASSWORD` | Senha do banco de dados |
+| `DB_NAME` | Nome do banco de dados |
 
 > Os valores desses secrets correspondem às mesmas variáveis do arquivo `.env` local.
 
@@ -274,6 +293,7 @@ Este projeto utiliza a **[OpenF1 API](https://openf1.org/)**, uma API pública e
 - [x] Tratar os dados da camada bronze e carregar para camada silver (via dbt)
 - [x] Criar camada(s) gold com os dados agregados (via dbt)
 - [x] Automatizar o pipeline de extração com GitHub Actions (schedule semanal)
+- [x] Automatizar a execução do dbt com GitHub Actions (dbt run + dbt test)
 - [ ] Criar validação de erros e qualidade de dados
 - [ ] Criar modelo(s) de ML para os dados disponibilizados
 - [ ] Disponibilizar os modelos de ML em ambiente cloud
